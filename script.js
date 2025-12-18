@@ -54,31 +54,56 @@ class YouTubeDownloader {
     }
 
     async fetchVideoInfo(url) {
-        // Simulasi response dari backend
-        // Dalam implementasi nyata, ini akan memanggil API endpoint
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve({
-                    id: this.extractVideoId(url),
-                    title: 'Sample Video Title - How to Download YouTube Videos',
-                    duration: '10:30',
-                    views: '1,234,567 views',
-                    channel: 'Tech Channel',
-                    thumbnail: 'https://via.placeholder.com/320x180?text=Video+Thumbnail',
-                    formats: [
-                        { quality: '720p', size: '45 MB', format: 'mp4', itag: '22' },
-                        { quality: '480p', size: '28 MB', format: 'mp4', itag: '18' },
-                        { quality: '360p', size: '15 MB', format: 'mp4', itag: '17' },
-                        { quality: 'Audio Only', size: '8 MB', format: 'mp3', itag: '140' }
-                    ]
-                });
-            }, 1000);
-        });
+        try {
+            const response = await fetch(`/api/video-info?url=${encodeURIComponent(url)}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            
+            // Format duration dari seconds ke MM:SS
+            const duration = this.formatDuration(data.duration);
+            
+            return {
+                id: data.id,
+                title: data.title,
+                duration: duration,
+                views: this.formatViews(data.views),
+                channel: data.channel,
+                thumbnail: data.thumbnail,
+                formats: data.formats
+            };
+        } catch (error) {
+            console.error('Error fetching video info:', error);
+            throw error;
+        }
     }
 
     extractVideoId(url) {
         const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
         return match ? match[1] : '';
+    }
+
+    formatDuration(seconds) {
+        if (!seconds) return 'Unknown';
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60);
+        
+        if (hours > 0) {
+            return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        return `${minutes}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    formatViews(views) {
+        if (!views) return 'Unknown views';
+        if (views >= 1000000) {
+            return `${(views / 1000000).toFixed(1)}M views`;
+        } else if (views >= 1000) {
+            return `${(views / 1000).toFixed(1)}K views`;
+        }
+        return `${views} views`;
     }
 
     displayVideoInfo(videoInfo) {
@@ -122,25 +147,65 @@ class YouTubeDownloader {
         document.getElementById('downloadOptions').classList.add('hidden');
         document.getElementById('progressSection').classList.remove('hidden');
 
-        // Simulasi download progress
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += Math.random() * 15;
-            if (progress > 100) progress = 100;
-
-            this.updateProgress(progress);
-
-            if (progress >= 100) {
-                clearInterval(interval);
-                this.downloadComplete(videoId, quality);
+        try {
+            const url = document.getElementById('videoUrl').value.trim();
+            
+            // Create download URL
+            const downloadUrl = `/api/download?url=${encodeURIComponent(url)}&itag=${itag}`;
+            
+            // Start download with progress tracking
+            const response = await fetch(downloadUrl);
+            
+            if (!response.ok) {
+                throw new Error(`Download failed: ${response.statusText}`);
             }
-        }, 500);
+
+            // Get content length for progress tracking
+            const contentLength = response.headers.get('Content-Length');
+            const total = contentLength ? parseInt(contentLength) : 0;
+            
+            // Read the response as stream
+            const reader = response.body.getReader();
+            let received = 0;
+            let chunks = [];
+
+            while (true) {
+                const { done, value } = await reader.read();
+                
+                if (done) break;
+                
+                chunks.push(value);
+                received += value.length;
+                
+                // Update progress
+                const progress = total > 0 ? (received / total) * 100 : Math.random() * 100;
+                this.updateProgress(progress, received, total);
+            }
+
+            // Create blob from chunks
+            const blob = new Blob(chunks);
+            const downloadUrl_ = URL.createObjectURL(blob);
+            
+            // Complete download
+            this.downloadComplete(videoId, quality, downloadUrl_);
+            
+        } catch (error) {
+            console.error('Download error:', error);
+            this.showError('Download gagal: ' + error.message);
+        }
     }
 
-    updateProgress(progress) {
+    updateProgress(progress, received = 0, total = 0) {
         document.getElementById('progressBar').style.width = `${progress}%`;
         document.getElementById('progressText').textContent = `${Math.round(progress)}%`;
-        document.getElementById('speedText').textContent = `${(Math.random() * 5 + 1).toFixed(1)} MB/s`;
+        
+        // Calculate speed if we have data
+        if (received > 0 && total > 0) {
+            const speed = (received / 1024 / 1024).toFixed(1);
+            document.getElementById('speedText').textContent = `${speed} MB/s`;
+        } else {
+            document.getElementById('speedText').textContent = `${(Math.random() * 5 + 1).toFixed(1)} MB/s`;
+        }
         
         const statusMessages = [
             'Menghubungkan ke server...',
@@ -154,7 +219,7 @@ class YouTubeDownloader {
         document.getElementById('statusText').textContent = statusMessages[Math.min(statusIndex, statusMessages.length - 1)];
     }
 
-    downloadComplete(videoId, quality) {
+    downloadComplete(videoId, quality, downloadUrl) {
         document.getElementById('progressSection').classList.add('hidden');
         document.getElementById('successSection').classList.remove('hidden');
         
@@ -170,7 +235,7 @@ class YouTubeDownloader {
             date: new Date().toLocaleString('id-ID')
         });
 
-        this.downloadUrl = '#'; // Dalam implementasi nyata, ini adalah URL file yang diunduh
+        this.downloadUrl = downloadUrl; // Real download URL from blob
     }
 
     downloadFile() {

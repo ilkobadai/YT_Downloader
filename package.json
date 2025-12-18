@@ -17,8 +17,9 @@
   "author": "YouTube Downloader Web",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
     "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "youtube-dl-exec": "^3.0.27",
     "ytdl-core": "^4.11.5"
   },
   "devDependencies": {

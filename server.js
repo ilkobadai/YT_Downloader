@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const ytdl = require('ytdl-core');
+const ytDlExec = require('youtube-dl-exec');
 const path = require('path');
 const fs = require('fs');
 
@@ -32,27 +33,63 @@ app.get('/api/video-info', async (req, res) => {
             return res.status(400).json({ error: 'URL is required' });
         }
 
-        const info = await ytdl.getInfo(url);
-        const formats = info.formats
-            .filter(format => format.hasVideo && format.hasAudio || format.hasAudio && !format.hasVideo)
-            .map(format => ({
-                itag: format.itag,
-                quality: format.qualityLabel || format.audioQuality || 'Audio Only',
-                format: format.container,
-                size: format.contentLength ? `${(format.contentLength / 1024 / 1024).toFixed(1)} MB` : 'Unknown',
-                fps: format.fps,
-                bitrate: format.bitrate
-            }));
+        let info;
+        try {
+            // Try ytdl-core first
+            info = await ytdl.getInfo(url);
+            const formats = info.formats
+                .filter(format => format.hasVideo && format.hasAudio || format.hasAudio && !format.hasVideo)
+                .map(format => ({
+                    itag: format.itag,
+                    quality: format.qualityLabel || format.audioQuality || 'Audio Only',
+                    format: format.container,
+                    size: format.contentLength ? `${(format.contentLength / 1024 / 1024).toFixed(1)} MB` : 'Unknown',
+                    fps: format.fps,
+                    bitrate: format.bitrate
+                }));
 
-        res.json({
-            id: info.videoDetails.videoId,
-            title: info.videoDetails.title,
-            duration: info.videoDetails.lengthSeconds,
-            views: info.videoDetails.viewCount,
-            channel: info.videoDetails.author.name,
-            thumbnail: info.videoDetails.thumbnails[info.videoDetails.thumbnails.length - 1].url,
-            formats: formats
-        });
+            res.json({
+                id: info.videoDetails.videoId,
+                title: info.videoDetails.title,
+                duration: info.videoDetails.lengthSeconds,
+                views: info.videoDetails.viewCount,
+                channel: info.videoDetails.author.name,
+                thumbnail: info.videoDetails.thumbnails[info.videoDetails.thumbnails.length - 1].url,
+                formats: formats
+            });
+        } catch (ytdlError) {
+            console.log('ytdl-core failed, trying youtube-dl-exec:', ytdlError.message);
+            
+            // Fallback to youtube-dl-exec
+            const info = await ytDlExec(url, {
+                dumpSingleJson: true,
+                noCheckCertificates: true,
+                noWarnings: true,
+                preferFreeFormats: true,
+                addHeader: ['referer:youtube.com', 'user-agent:googlebot']
+            });
+
+            const formats = info.formats
+                .filter(format => format.vcodec !== 'none' || format.acodec !== 'none')
+                .map(format => ({
+                    itag: format.format_id,
+                    quality: format.format_note || format.height || 'Audio Only',
+                    format: format.ext,
+                    size: format.filesize ? `${(format.filesize / 1024 / 1024).toFixed(1)} MB` : 'Unknown',
+                    fps: format.fps,
+                    bitrate: format.tbr
+                }));
+
+            res.json({
+                id: info.id,
+                title: info.title,
+                duration: info.duration,
+                views: info.view_count,
+                channel: info.uploader,
+                thumbnail: info.thumbnail,
+                formats: formats
+            });
+        }
     } catch (error) {
         console.error('Error getting video info:', error);
         res.status(500).json({ error: 'Failed to get video info: ' + error.message });
