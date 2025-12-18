@@ -115,6 +115,33 @@ Untuk development mode dengan auto-reload:
 npm run dev
 ```
 
+## Deployment
+
+### Option 1: VPS/Cloud Server (Recommended)
+1. Upload semua files ke server
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Jalankan server:
+   ```bash
+   npm start
+   ```
+
+### Option 2: Railway/Render/Heroku
+1. Push ke GitHub repository
+2. Connect ke platform deployment
+3. Set build command: `npm install`
+4. Set start command: `npm start`
+
+### Option 3: GitHub Pages (Limited)
+Untuk GitHub Pages, gunakan file yang sudah disediakan:
+1. Upload `index-github.html` dan `script-github.js`
+2. Enable GitHub Pages di repository settings
+3. Akses via `https://username.github.io/repository-name/`
+
+**Note:** GitHub Pages version hanya demo, tidak bisa download real video.
+
 ## Struktur Proyek
 
 ```

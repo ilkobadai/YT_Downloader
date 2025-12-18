@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Downloader - GitHub Pages Version</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-12">
+            <h1 class="text-5xl font-bold text-white mb-4">
+                <i class="fab fa-youtube text-red-500 mr-3"></i>
+                YouTube Downloader
+            </h1>
+            <p class="text-xl text-gray-200 mb-4">Download video YouTube dengan mudah dan cepat</p>
+            <div class="bg-yellow-500/20 border border-yellow-500 rounded-lg p-4 max-w-2xl mx-auto">
+                <p class="text-yellow-200 text-sm">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    <strong>GitHub Pages Version:</strong> Versi ini menggunakan API pihak ketiga. Untuk full functionality, deploy backend server.
+                </p>
+            </div>
+        </header>
+
+        <main class="max-w-4xl mx-auto">
+            <div class="glass-effect rounded-2xl p-8 shadow-2xl">
+                <!-- Input Section -->
+                <div class="mb-8">
+                    <label for="videoUrl" class="block text-white text-lg font-semibold mb-3">
+                        <i class="fas fa-link mr-2"></i>
+                        Masukkan URL Video YouTube
+                    </label>
+                    <div class="flex gap-3">
+                        <input 
+                            type="url" 
+                            id="videoUrl" 
+                            placeholder="https://www.youtube.com/watch?v=..." 
+                            class="flex-1 px-4 py-3 rounded-lg bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50"
+                        >
+                        <button 
+                            onclick="getVideoInfo()" 
+                            class="px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors duration-200"
+                        >
+                            <i class="fas fa-search mr-2"></i>
+                            Cari
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Video Info Section -->
+                <div id="videoInfo" class="hidden mb-8">
+                    <div class="bg-white/10 rounded-lg p-6">
+                        <div class="flex gap-6">
+                            <img id="thumbnail" class="w-48 h-36 object-cover rounded-lg" alt="Thumbnail">
+                            <div class="flex-1 text-white">
+                                <h3 id="videoTitle" class="text-xl font-bold mb-2"></h3>
+                                <p id="videoDuration" class="text-gray-300 mb-1"></p>
+                                <p id="videoViews" class="text-gray-300 mb-1"></p>
+                                <p id="videoChannel" class="text-gray-300"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Download Options -->
+                <div id="downloadOptions" class="hidden mb-8">
+                    <h3 class="text-white text-lg font-semibold mb-4">
+                        <i class="fas fa-download mr-2"></i>
+                        Pilih Kualitas
+                    </h3>
+                    <div id="qualityOptions" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Quality options will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Progress Section -->
+                <div id="progressSection" class="hidden">
+                    <div class="bg-white/10 rounded-lg p-6">
+                        <h3 class="text-white text-lg font-semibold mb-4">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>
+                            Sedang Mendownload...
+                        </h3>
+                        <div class="mb-2">
+                            <div class="flex justify-between text-white text-sm mb-1">
+                                <span id="progressText">0%</span>
+                                <span id="speedText">0 MB/s</span>
+                            </div>
+                            <div class="w-full bg-white/20 rounded-full h-3">
+                                <div id="progressBar" class="progress-bar bg-green-500 h-3 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <p id="statusText" class="text-gray-300 text-sm"></p>
+                    </div>
+                </div>
+
+                <!-- Success Section -->
+                <div id="successSection" class="hidden">
+                    <div class="bg-green-500/20 border border-green-500 rounded-lg p-6 text-center">
+                        <i class="fas fa-check-circle text-green-400 text-5xl mb-4"></i>
+                        <h3 class="text-white text-xl font-bold mb-2">Download Berhasil!</h3>
+                        <p id="fileName" class="text-gray-300 mb-4"></p>
+                        <button 
+                            onclick="downloadFile()" 
+                            class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors duration-200"
+                        >
+                            <i class="fas fa-download mr-2"></i>
+                            Download File
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instructions Section -->
+            <div class="glass-effect rounded-2xl p-6 mt-8 shadow-2xl">
+                <h3 class="text-white text-lg font-semibold mb-4">
+                    <i class="fas fa-cog mr-2"></i>
+                    Cara Deploy Full Version
+                </h3>
+                <div class="text-gray-200 space-y-3">
+                    <p><strong>Option 1:</strong> Deploy ke VPS/Cloud Server</p>
+                    <ol class="list-decimal list-inside ml-4 space-y-1 text-sm">
+                        <li>Upload semua files ke server</li>
+                        <li>Jalankan <code class="bg-gray-700 px-2 py-1 rounded">npm install</code></li>
+                        <li>Jalankan <code class="bg-gray-700 px-2 py-1 rounded">npm start</code></li>
+                    </ol>
+                    
+                    <p><strong>Option 2:</strong> Deploy ke Railway/Render/Heroku</p>
+                    <ol class="list-decimal list-inside ml-4 space-y-1 text-sm">
+                        <li>Connect GitHub repository</li>
+                        <li>Set build command: <code class="bg-gray-700 px-2 py-1 rounded">npm install</code></li>
+                        <li>Set start command: <code class="bg-gray-700 px-2 py-1 rounded">npm start</code></li>
+                    </ol>
+
+                    <p><strong>Option 3:</strong> Deploy ke GitHub Pages (Limited)</p>
+                    <ol class="list-decimal list-inside ml-4 space-y-1 text-sm">
+                        <li>Upload hanya <code class="bg-gray-700 px-2 py-1 rounded">index.html</code> dan <code class="bg-gray-700 px-2 py-1 rounded">script-github.js</code></li>
+                        <li>Enable GitHub Pages</li>
+                        <li>Functionality terbatas (no real download)</li>
+                    </ol>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script-github.js"></script>
+</body>
+</html>
